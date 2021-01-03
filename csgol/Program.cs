@@ -3,17 +3,37 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Accord.Imaging;
+using Accord.Imaging.Converters;
+using Accord.Imaging.Filters;
 
-namespace csgof
+namespace csgol
 {
     class Program
     {
         private const int Height = 50;
         private const int Width = 50;
 
+        private static readonly int[,] Kernel =
+        {
+            {
+                1, 1, 1
+            },
+            {
+                1, 0, 1
+            },
+            {
+                1, 1, 1
+            }
+        };
+
+        private static readonly Convolution Convolution = new Convolution(Kernel);
+
+        private static readonly MatrixToImage MatrixToImage = new MatrixToImage();
+
         static void Main(string[] args)
         {
-            Console.WriteLine("csgof..");
+            Console.WriteLine("csgol..");
             var stopWatch = Stopwatch.StartNew();
             var grid = ZeroGrid();
             //PrintGrid(grid);
@@ -22,6 +42,7 @@ namespace csgof
             {
                 PrintGrid(grid);
                 Thread.Sleep(5);
+                var _ = GetNextGeneration2dConv(grid);
                 grid = GetNextGeneration(grid);
             }
 
@@ -39,14 +60,34 @@ namespace csgof
                 var stringBuilder = new StringBuilder();
                 for (int j = 0; j < grid.GetLength(1); j++)
                 {
-                    
                     stringBuilder.Append($"{(grid[i, j] == 1 ? 'O' : '.')} ");
                 }
 
                 gridStringBuilder.AppendLine(stringBuilder.ToString());
-                
             }
+
             Console.WriteLine(gridStringBuilder.ToString());
+        }
+
+        private static int[,] GetNextGeneration2dConv(int[,] grid)
+        {
+            var nextGrid = ZeroGrid();
+            // MatrixToImage.Format = PixelFormat.Format1bppIndexed;
+            // MatrixToImage.Convert(grid, out Bitmap bitmap);
+            var bitmap = grid.ToBitmap();
+            var neighborCount = Convolution.Apply(bitmap);
+            
+            for (var y = 0; y < Height; y++)
+            {
+                for (var x = 0; x < Width; x++)
+                {
+                    if (grid[x, y] == 1)
+                    {
+                    }
+                }
+            }
+
+            return nextGrid;
         }
 
         private static int[,] GetNextGeneration(int[,] grid)
@@ -60,21 +101,21 @@ namespace csgof
                 {
                     var xBefore = x > 0 ? x - 1 : Width - 1;
                     var xAfter = x < Width - 1 ? x + 1 : 0;
-                    var neighborSum = grid[yBefore,xBefore] + grid[yBefore,x] + grid[yBefore,xAfter] +
-                                      grid[y,xBefore] + grid[y,xAfter] +
-                                      grid[yAfter,xBefore] + grid[yAfter,x] + grid[yAfter,xAfter];
-                    if (grid[y,x] == 0)
+                    var neighborSum = grid[yBefore, xBefore] + grid[yBefore, x] + grid[yBefore, xAfter] +
+                                      grid[y, xBefore] + grid[y, xAfter] +
+                                      grid[yAfter, xBefore] + grid[yAfter, x] + grid[yAfter, xAfter];
+                    if (grid[y, x] == 0)
                     {
                         if (neighborSum == 3)
                         {
-                            nextGrid[y,x] = 1;
+                            nextGrid[y, x] = 1;
                         }
                     }
                     else
                     {
                         if (neighborSum == 2 || neighborSum == 3)
                         {
-                            nextGrid[y,x] = 1;
+                            nextGrid[y, x] = 1;
                         }
                     }
                 }
@@ -88,6 +129,7 @@ namespace csgof
             return new int[Height, Width];
         }
 
+
         static int[,] LoadComponent(int[,] grid, int i, int j, string fileName)
         {
             var lines = File.ReadAllLines(fileName);
@@ -96,7 +138,7 @@ namespace csgof
             {
                 foreach (var c in line)
                 {
-                    grid[j,i] = c == '.' ? 0 : 1;
+                    grid[j, i] = c == '.' ? 0 : 1;
                     i++;
                 }
 
